@@ -626,4 +626,350 @@ function renderDash(){
     const sp=sum(cardTxns(c.id,'current'));const p=Math.min((sp/c.limit)*100,100);
     return`<div class="usage-card" onclick="openDetails('card','${c.id}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
-        <div><div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px"><span class="cdot" style="background:${c.ac};width:10px;height:10px"></span>${c.name}</div><div style="font-size:10px
+        <div><div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px"><span class="cdot" style="background:${c.ac};width:10px;height:10px"></span>${c.name}</div><div style="font-size:10px;color:var(--muted);margin-top:1px">${c.net} · Fecha dia ${c.close}</div></div>
+        <div style="text-align:right"><div style="font-weight:700;color:var(--red)">${R(sp)}</div><div style="font-size:10px;color:var(--muted)">de ${R(c.limit)}</div></div>
+      </div>
+      <div class="pb"><div class="pf" style="width:${p}%;background:${c.ac}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px"><span style="font-size:10px;color:var(--muted)">${p.toFixed(0)}% usado</span><span style="font-size:10px;color:#A78BFA;font-weight:600">Ver detalhes →</span></div>
+    </div>`;
+  }).join('')+(uVis.length===0?'<div class="empty"><div class="empty-i">🃏</div>Nenhum cartão selecionado.<br><span style="color:#A78BFA;cursor:pointer" onclick="openPicker(\'usage\')">Configurar</span></div>':'');
+  const rec=[...filtered('current')].sort((a,b)=>new Date(b.dt)-new Date(a.dt)).slice(0,5);
+  document.getElementById('d-recent').innerHTML=rec.length?rec.map(tiHTML).join(''):'<div class="empty"><div class="empty-i">📭</div>Nenhum lançamento</div>';
+  renderInsights();
+}
+
+function tiHTML(t){
+  const c=cat(t.cat),cd=card(t.cid);
+  const d=new Date(t.dt+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+  const tcy=getTxnCycle(t);
+  const pCls=tcy==='current'?'pc':(tcy==='next'?'pn':'');
+  const pSt=tcy==='other'?'background:rgba(255,255,255,.1);color:#CBD5E1':'';
+  const pTxt=tcy==='current'?'Atual':(tcy==='next'?'Próx.':'Ant.');
+  const sc=t.subcat?`<span class="subcat-pill">🏷️ ${t.subcat}</span>`:'';
+  const pb=t.parcelas?`<span class="parcela-badge">${t.parcelas}</span>`:'';
+  return`<div class="ti">
+    <div class="tico" style="background:${c.c}22">${c.e}</div>
+    <div class="tin">
+      <div class="tid">${t.desc}${sc}${pb}</div>
+      <div class="tim">${cd?.name||''} · ${d} · <span class="pill ${pCls}" style="${pSt}">${pTxt}</span></div>
+    </div>
+    <div class="ti-right">
+      <div class="tia">−${R(t.amt)}</div>
+      <div class="ti-edit" onclick="event.stopPropagation();openEditTxn(${t.id})">✏️ editar</div>
+    </div>
+  </div>`;
+}
+
+// ── CARDS SCREEN ──────────────────────────────────────────────────────────────
+function renderCards(){
+  const vis=S.filter==='all'?cards:cards.filter(c=>c.id===S.filter);
+  document.getElementById('cards-list').innerHTML=vis.map(c=>{
+    const curr=sum(cardTxns(c.id,'current')),nxt=sum(cardTxns(c.id,'next')),av=c.limit-curr,p=Math.min((curr/c.limit)*100,100);
+    return`<div class="ccv" style="background:${c.bg}" onclick="openDetails('card','${c.id}')">
+      <div class="cc-top">
+        <div><div class="cc-name">${c.name}</div><div class="cc-net">${c.net}</div></div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div class="cc-edit-btn" onclick="event.stopPropagation();openEditCard('${c.id}')">✏️ Editar</div>
+          <div style="font-size:26px">💳</div>
+        </div>
+      </div>
+      <div>
+        <div class="cc-row" style="margin-bottom:10px">
+          <div><div class="cc-lbl">Fatura Atual</div><div class="cc-val">${R(curr)}</div></div>
+          <div><div class="cc-lbl">Próx. Fatura</div><div class="cc-val">${R(nxt)}</div></div>
+          <div><div class="cc-lbl">Disponível</div><div class="cc-val">${R(av)}</div></div>
+        </div>
+        <div class="pb"><div class="pf" style="width:${p}%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:9px;opacity:.65">Limite ${R(c.limit)}</span><span style="font-size:9px;opacity:.65">Fecha dia ${c.close} · Vence dia ${c.due}</span></div>
+      </div>
+    </div>`;
+  }).join('')+`<div class="card card-click" style="text-align:center;padding:18px;border-style:dashed" onclick="openCardModal()"><div style="font-size:26px;margin-bottom:5px">➕</div><div style="font-weight:600;color:var(--muted);font-size:13px">Adicionar Cartão</div></div>`;
+}
+
+// ── CATEGORIES ────────────────────────────────────────────────────────────────
+function setCatView(v){
+  S.catView=v;
+  document.getElementById('tab-cats').className='chip '+(v==='cats'?'on':'');
+  document.getElementById('tab-subcats').className='chip '+(v==='subcats'?'on':'');
+  document.getElementById('cats-view').style.display=v==='cats'?'block':'none';
+  document.getElementById('subcats-view').style.display=v==='subcats'?'block':'none';
+  if(v==='cats')renderCats();else renderSubcats();
+}
+
+function renderCats(){
+  if(S.charts.cat){S.charts.cat.destroy();delete S.charts.cat;}
+  const t=filtered('current');const totals={};t.forEach(tx=>{totals[tx.cat]=(totals[tx.cat]||0)+tx.amt;});
+  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);const total=sum(t);
+  if(!sorted.length){document.getElementById('cat-legend').innerHTML='<div class="empty"><div class="empty-i">📊</div>Nenhum dado</div>';document.getElementById('cat-detail').innerHTML='';return;}
+  const ctx=document.getElementById('cat-chart').getContext('2d');
+  S.charts.cat=new Chart(ctx,{type:'doughnut',data:{labels:sorted.map(([k])=>k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:sorted.map(([k])=>cat(k).c+'BB'),borderColor:sorted.map(([k])=>cat(k).c),borderWidth:2,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${R(c.raw)} (${((c.raw/total)*100).toFixed(1)}%)`}}},cutout:'62%'}});
+  document.getElementById('cat-legend').innerHTML=sorted.map(([k,v])=>`<div class="lg-item"><div class="lg-dot" style="background:${cat(k).c}"></div><span style="font-size:17px">${cat(k).e}</span><span style="flex:1;font-size:13px;color:var(--txt2)">${k}</span><span style="font-size:13px;font-weight:700">${R(v)}</span><span style="font-size:11px;color:var(--muted);margin-left:5px">${((v/total)*100).toFixed(0)}%</span></div>`).join('');
+  document.getElementById('cat-detail').innerHTML=sorted.map(([k,v])=>{const items=t.filter(tx=>tx.cat===k);return`<div class="card card-click" style="margin-bottom:9px" onclick="openDetails('cat','${k}')"><div style="display:flex;align-items:center;gap:9px"><div class="tico" style="background:${cat(k).c}22">${cat(k).e}</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${k}</div><div style="font-size:11px;color:var(--muted)">${items.length} lançamento${items.length>1?'s':''}</div></div><div><div style="font-weight:700;color:${cat(k).c}">${R(v)}</div><div style="font-size:10px;color:#A78BFA;text-align:right;margin-top:2px">Ver →</div></div></div></div>`;}).join('');
+}
+
+function renderSubcats(){
+  const el=document.getElementById('subcats-content');const all=getSubcats();
+  if(!all.length){el.innerHTML=`<div class="empty"><div class="empty-i">🏷️</div><div style="font-weight:600;margin-bottom:8px">Nenhuma subcategoria ainda</div><div style="font-size:12px;line-height:1.5;color:var(--muted)">Ao adicionar um lançamento, preencha o campo <b style="color:var(--txt2)">Subcategoria</b> para criar categorias personalizadas como "Casamento", "Viagem Europa" etc.</div></div>`;return;}
+  const totals={};txns.filter(t=>t.subcat).forEach(t=>{totals[t.subcat]=(totals[t.subcat]||0)+t.amt;});
+  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);const grand=sorted.reduce((s,[,v])=>s+v,0);
+  const SC=['#A78BFA','#60A5FA','#34D399','#FB923C','#F472B6','#FCD34D','#2DD4BF','#818CF8'];
+  el.innerHTML=`<div class="big-stat" style="padding:16px;margin-bottom:12px"><div class="bs-lbl">🏷️ TOTAL SUBCATEGORIAS</div><div class="bs-val">${R(grand)}</div><div class="bs-sub">${all.length} subcategoria${all.length!==1?'s':''}</div></div>`
+  +sorted.map(([k,v],i)=>{const items=txns.filter(t=>t.subcat===k);const pct=grand>0?((v/grand)*100).toFixed(0):0;const col=SC[i%SC.length];
+    return`<div class="card card-click" style="margin-bottom:9px" onclick="openDetails('subcat','${k}')"><div style="display:flex;align-items:center;gap:10px"><div class="tico" style="background:${col}22">🏷️</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${k}</div><div style="font-size:11px;color:var(--muted)">${items.length} lançamento${items.length!==1?'s':''} · ${pct}% do total</div><div class="pb" style="margin-top:6px"><div class="pf" style="width:${pct}%;background:${col}"></div></div></div><div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:${col}">${R(v)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Ver →</div></div></div></div>`;
+  }).join('');
+}
+
+// ── PROJECTION ────────────────────────────────────────────────────────────────
+function renderProj(){
+  if(S.charts.proj){S.charts.proj.destroy();delete S.charts.proj;}
+  const curr=filtered('current');const ranges=[{s:1,e:7},{s:8,e:14},{s:15,e:21},{s:22,e:28},{s:29,e:31}];
+  let cum=0;const cData=ranges.map(r=>{const w=curr.filter(t=>{const d=+t.dt.split('-')[2];return d>=r.s&&d<=r.e;});cum+=sum(w);return cum;});
+  const nxt=filtered('next'),nT=sum(nxt);const nData=[0,nT*.15,nT*.4,nT*.75,nT];
+  const ctx=document.getElementById('proj-chart').getContext('2d');
+  S.charts.proj=new Chart(ctx,{type:'line',data:{labels:['Sem 1','Sem 2','Sem 3','Sem 4','Sem 5'],datasets:[{label:mN[appDate.getMonth()],data:cData,borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.12)',borderWidth:2.5,pointBackgroundColor:'#A78BFA',pointRadius:4,fill:true,tension:.35},{label:mN[(appDate.getMonth()+1)%12],data:nData,borderColor:'#60A5FA',backgroundColor:'rgba(96,165,250,.08)',borderWidth:2.5,pointBackgroundColor:'#60A5FA',pointRadius:4,fill:true,tension:.35,borderDash:[6,4]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${R(c.raw)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748B',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#64748B',font:{size:10},callback:v=>`R$${(v/1000).toFixed(1)}k`}}}}});
+  const lim=totalLimit(),cr=sum(filtered('current')),nx=sum(filtered('next'));
+  let nD=new Date(appDate);nD.setMonth(nD.getMonth()+1);
+  document.getElementById('proj-table').innerHTML=[{l:'Total da Fatura',v1:cr,v2:nx},{l:'Limite Disponível',v1:lim-cr,v2:lim-nx},{l:'Nº de Lançamentos',v1:filtered('current').length,v2:filtered('next').length,raw:true}].map(row=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--txt2)">${row.l}</span><div style="display:flex;gap:18px"><div style="text-align:right"><div style="font-size:10px;color:#A78BFA;font-weight:600">${fN[appDate.getMonth()]}</div><div style="font-size:13px;font-weight:700">${row.raw?row.v1:R(row.v1)}</div></div><div style="text-align:right"><div style="font-size:10px;color:#60A5FA;font-weight:600">${fN[nD.getMonth()]}</div><div style="font-size:13px;font-weight:700">${row.raw?row.v2:R(row.v2)}</div></div></div></div>`).join('')+'<div style="padding-top:4px"></div>';
+}
+
+// ── TRANSACTIONS ──────────────────────────────────────────────────────────────
+function renderTxns(){
+  const cyc=[{v:'all',l:'Todos'},{v:'current',l:'Fatura Atual'},{v:'next',l:'Próxima'}];
+  document.getElementById('cycle-row').innerHTML=cyc.map(c=>`<div class="chip ${S.cycle===c.v?'on':''}" onclick="setCycle('${c.v}')">${c.l}</div>`).join('');
+  const search=(document.getElementById('txn-search')?.value||'').toLowerCase();
+  const arr=txns.filter(t=>{
+    const ok1=S.filter==='all'||t.cid===S.filter;
+    const ok2=S.cycle==='all'||getTxnCycle(t)===S.cycle;
+    const ok3=!search||t.desc.toLowerCase().includes(search)||t.cat.toLowerCase().includes(search)||(t.subcat&&t.subcat.toLowerCase().includes(search));
+    return ok1&&ok2&&ok3;
+  }).sort((a,b)=>new Date(b.dt)-new Date(a.dt));
+  document.getElementById('txn-list').innerHTML=arr.length?`<div class="card">${arr.map(tiHTML).join('')}</div>`:'<div class="empty"><div class="empty-i">📭</div>Nenhum lançamento</div>';
+}
+function setCycle(v){S.cycle=v;renderTxns();}
+
+function exportCSV(){
+  const rows=[['Data','Descrição','Cartão','Categoria','Subcategoria','Valor','Parcelas']];
+  txns.forEach(t=>{const c=card(t.cid);rows.push([t.dt,`"${t.desc}"`,c?.name||'',t.cat,t.subcat||'',t.amt.toFixed(2),t.parcelas||'']);});
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),download:'findash-export.csv'});
+  a.click();toast('CSV exportado! 📄');
+}
+
+function importCSV(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const lines=ev.target.result.split('\n');let count=0;const cid=S.filter==='all'?cards[0].id:S.filter;
+    lines.forEach((line,i)=>{if(i===0||!line.trim())return;const cols=line.split(',');if(cols.length>=3){let dtStr=cols[0].trim(),desc=cols[1].replace(/^"|"$/g,'').trim(),amt=parseFloat(cols[2].replace(/[^\d.-]/g,''));if(!dtStr.includes('-'))dtStr=appDate.toISOString().split('T')[0];if(!isNaN(amt)&&amt>0){txns.push({id:Date.now()+count,cid,cat:'Outros',desc,amt,dt:dtStr,subcat:null});count++;}}});
+    refreshAll();toast(count+' transações importadas! ✅');e.target.value='';
+  };r.readAsText(f);
+}
+
+// ── EDIT TRANSACTION ──────────────────────────────────────────────────────────
+function openEditTxn(id){
+  editTxnId=id;const t=txns.find(x=>x.id===id);if(!t)return;
+  editTxnCat=t.cat;
+  document.getElementById('et-desc').value=t.desc;
+  document.getElementById('et-val').value=t.amt;
+  document.getElementById('et-card').innerHTML=cards.map(c=>`<option value="${c.id}" ${c.id===t.cid?'selected':''}>${c.name}</option>`).join('');
+  document.getElementById('et-date').value=t.dt;
+  document.getElementById('et-cats').innerHTML=CATS.map(c=>`<div class="co ${editTxnCat===c.n?'on':''}" onclick="pickETCat(this,'${c.n}')"><span class="ce">${c.e}</span>${c.n}</div>`).join('');
+  document.getElementById('et-subcat').value=t.subcat||'';
+  document.getElementById('et-subcat-dl').innerHTML=getSubcats().map(s=>`<option value="${s}"></option>`).join('');
+  document.getElementById('et-del-btn').style.display='block';
+  document.getElementById('et-del-confirm').style.display='none';
+  document.getElementById('modal-edit-txn').classList.add('on');
+}
+function pickETCat(el,n){editTxnCat=n;document.querySelectorAll('#et-cats .co').forEach(e=>e.classList.remove('on'));el.classList.add('on');}
+function closeTxnModal(){document.getElementById('modal-edit-txn').classList.remove('on');}
+function saveEditTxn(){
+  const idx=txns.findIndex(t=>t.id===editTxnId);if(idx<0)return;
+  const desc=document.getElementById('et-desc').value.trim();
+  const amt=parseFloat(document.getElementById('et-val').value);
+  if(!desc||!amt||amt<=0){toast('Preencha descrição e valor ⚠️');return;}
+  txns[idx]={...txns[idx],desc,amt,cid:document.getElementById('et-card').value,dt:document.getElementById('et-date').value,cat:editTxnCat,subcat:document.getElementById('et-subcat').value.trim()||null};
+  closeTxnModal();toast('Lançamento atualizado! ✅');refreshAll();
+}
+function showDelTxnConfirm(){document.getElementById('et-del-btn').style.display='none';document.getElementById('et-del-confirm').style.display='block';}
+function cancelDelTxn(){document.getElementById('et-del-btn').style.display='block';document.getElementById('et-del-confirm').style.display='none';}
+function confirmDelTxn(){txns=txns.filter(t=>t.id!==editTxnId);closeTxnModal();toast('Lançamento excluído');refreshAll();}
+
+// ── DETAILS MODAL ─────────────────────────────────────────────────────────────
+let mdCtx={type:null,id:null,period:'curr'};
+function openDetails(type,id){mdCtx.type=type;mdCtx.id=id;mdCtx.period=(type==='cycle')?id:'curr';document.getElementById('modal-details').classList.add('on');renderDetails();}
+function closeDetails(){document.getElementById('modal-details').classList.remove('on');}
+function setMdPeriod(p){mdCtx.period=p;renderDetails();}
+
+function renderDetails(){
+  let title='',filtersHtml='',listTxns=[];
+  const sumEl=document.getElementById('md-summary'),editBtn=document.getElementById('md-edit-btn');
+  editBtn.style.display='none';
+  let dPrev=new Date(appDate);dPrev.setMonth(dPrev.getMonth()-1);
+  let dNext=new Date(appDate);dNext.setMonth(dNext.getMonth()+1);
+  const pF=[{id:'prev',l:mN[dPrev.getMonth()]},{id:'curr',l:mN[appDate.getMonth()]+' (Atual)'},{id:'next',l:mN[dNext.getMonth()]},{id:'all',l:'Histórico'}];
+  function byP(t){const td=new Date(t.dt+'T12:00:00');if(mdCtx.period==='all')return true;if(mdCtx.period==='prev')return td.getMonth()===dPrev.getMonth()&&td.getFullYear()===dPrev.getFullYear();if(mdCtx.period==='curr')return td.getMonth()===appDate.getMonth()&&td.getFullYear()===appDate.getFullYear();if(mdCtx.period==='next')return td.getMonth()===dNext.getMonth()&&td.getFullYear()===dNext.getFullYear();return false;}
+
+  if(mdCtx.type==='card'){
+    const c=card(mdCtx.id);title=c.name;
+    editBtn.style.display='block';editBtn.onclick=()=>openEditCard(mdCtx.id);
+    const curr=sum(cardTxns(c.id,'current')),nxt=sum(cardTxns(c.id,'next')),av=c.limit-curr,p=Math.min((curr/c.limit)*100,100);
+    sumEl.style.display='block';
+    sumEl.innerHTML=`<div style="background:${c.bg};border-radius:14px;padding:15px;margin-bottom:12px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:10px;opacity:.65">${c.net} · Fecha dia ${c.close}</div></div><div style="font-size:24px">💳</div></div>
+      <div style="display:flex;gap:16px;margin-bottom:10px">
+        <div><div style="font-size:9px;opacity:.65;text-transform:uppercase">Fatura Atual</div><div style="font-size:14px;font-weight:700">${R(curr)}</div></div>
+        <div><div style="font-size:9px;opacity:.65;text-transform:uppercase">Próx. Fatura</div><div style="font-size:14px;font-weight:700">${R(nxt)}</div></div>
+        <div><div style="font-size:9px;opacity:.65;text-transform:uppercase">Disponível</div><div style="font-size:14px;font-weight:700">${R(av)}</div></div>
+      </div>
+      <div class="pb"><div class="pf" style="width:${p}%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:9px;opacity:.6">${p.toFixed(0)}% do limite</span><span style="font-size:9px;opacity:.6">Limite: ${R(c.limit)}</span></div>
+    </div>`;
+    filtersHtml=pF.map(f=>`<div class="chip ${mdCtx.period===f.id?'on':''}" onclick="setMdPeriod('${f.id}')">${f.l}</div>`).join('');
+    listTxns=txns.filter(t=>t.cid===mdCtx.id&&byP(t)).sort((a,b)=>new Date(b.dt)-new Date(a.dt));
+  } else if(mdCtx.type==='cat'){
+    title=cat(mdCtx.id).e+' '+mdCtx.id;sumEl.style.display='none';
+    filtersHtml=pF.map(f=>`<div class="chip ${mdCtx.period===f.id?'on':''}" onclick="setMdPeriod('${f.id}')">${f.l}</div>`).join('');
+    listTxns=txns.filter(t=>{const ok1=S.filter==='all'||t.cid===S.filter;return t.cat===mdCtx.id&&ok1&&byP(t);}).sort((a,b)=>new Date(b.dt)-new Date(a.dt));
+  } else if(mdCtx.type==='cycle'){
+    const isCurr=mdCtx.id==='current';
+    title=(isCurr?'🧾 Fatura Atual — ':'📅 Próxima Fatura — ')+fN[(isCurr?appDate:dNext).getMonth()];
+    const cyTxns=txns.filter(t=>{const ok1=S.filter==='all'||t.cid===S.filter;return ok1&&getTxnCycle(t)===mdCtx.id;});
+    sumEl.style.display='block';
+    sumEl.innerHTML=`<div class="cycle-sum"><div class="cycle-sum-lbl">Total ${isCurr?'Fatura Atual':'Próxima Fatura'}</div><div class="cycle-sum-val">${R(sum(cyTxns))}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${cyTxns.length} lançamento${cyTxns.length!==1?'s':''}</div></div>`;
+    filtersHtml='';listTxns=cyTxns.sort((a,b)=>new Date(b.dt)-new Date(a.dt));
+  } else if(mdCtx.type==='subcat'){
+    const SC=['#A78BFA','#60A5FA','#34D399','#FB923C','#F472B6'];const col=SC[getSubcats().indexOf(mdCtx.id)%SC.length]||'#A78BFA';
+    title='🏷️ '+mdCtx.id;const sTxns=txns.filter(t=>t.subcat===mdCtx.id);
+    sumEl.style.display='block';
+    sumEl.innerHTML=`<div class="cycle-sum" style="border-color:${col}44;background:linear-gradient(135deg,${col}15,${col}08)"><div class="cycle-sum-lbl" style="color:${col}">${mdCtx.id}</div><div class="cycle-sum-val" style="background:${col};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${R(sum(sTxns))}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">${sTxns.length} lançamento${sTxns.length!==1?'s':''}</div></div>`;
+    filtersHtml=pF.map(f=>`<div class="chip ${mdCtx.period===f.id?'on':''}" onclick="setMdPeriod('${f.id}')">${f.l}</div>`).join('');
+    listTxns=sTxns.filter(t=>byP(t)).sort((a,b)=>new Date(b.dt)-new Date(a.dt));
+  }
+  document.getElementById('md-title').textContent=title;
+  document.getElementById('md-filters').innerHTML=filtersHtml;
+  document.getElementById('md-list').innerHTML=listTxns.length?listTxns.map(tiHTML).join(''):'<div class="empty"><div class="empty-i">📭</div>Nenhum lançamento encontrado</div>';
+}
+
+// ── EDIT CARD ─────────────────────────────────────────────────────────────────
+function openEditCard(id){
+  editCardId=id;const c=card(id);
+  document.getElementById('ec-name').value=c.name;document.getElementById('ec-net').value=c.net;
+  document.getElementById('ec-limit').value=c.limit;document.getElementById('ec-close').value=c.close;document.getElementById('ec-due').value=c.due;
+  selEditColor=ckBg(c.bg).k;renderCG('edit-color-grid',selEditColor,'pickEditColor');
+  document.getElementById('edit-card-preview').style.background=c.bg;
+  document.getElementById('ec-prev-name').textContent=c.name;document.getElementById('ec-prev-net').textContent=c.net;
+  document.getElementById('card-del-btn').style.display='block';document.getElementById('card-del-confirm').style.display='none';
+  document.getElementById('modal-edit-card').classList.add('on');
+}
+function outEditCard(e){if(e.target===document.getElementById('modal-edit-card'))document.getElementById('modal-edit-card').classList.remove('on');}
+function saveEditCard(){
+  const idx=cards.findIndex(c=>c.id===editCardId);if(idx<0)return;
+  const name=document.getElementById('ec-name').value.trim(),net=document.getElementById('ec-net').value.trim(),limit=parseFloat(document.getElementById('ec-limit').value),close=parseInt(document.getElementById('ec-close').value),due=parseInt(document.getElementById('ec-due').value);
+  if(!name||!limit||!close||!due){toast('Preencha todos os campos ⚠️');return;}
+  const th=ckKey(selEditColor);cards[idx]={...cards[idx],name,net:net||cards[idx].net,limit,close,due,bg:th.bg,ac:th.ac};
+  document.getElementById('modal-edit-card').classList.remove('on');toast('Cartão atualizado! ✅');
+  refreshAll();renderChips();renderCards();
+  if(document.getElementById('modal-details').classList.contains('on'))renderDetails();
+}
+function showDelCardConfirm(){document.getElementById('card-del-btn').style.display='none';document.getElementById('card-del-confirm').style.display='block';}
+function cancelDelCard(){document.getElementById('card-del-btn').style.display='block';document.getElementById('card-del-confirm').style.display='none';}
+function confirmDelCard(){
+  txns=txns.filter(t=>t.cid!==editCardId);cards=cards.filter(c=>c.id!==editCardId);
+  S.spendCards=S.spendCards.filter(id=>id!==editCardId);S.usageCards=S.usageCards.filter(id=>id!==editCardId);
+  document.getElementById('modal-edit-card').classList.remove('on');closeDetails();
+  toast('Cartão excluído');refreshAll();renderChips();renderCards();
+}
+
+// ── PICKER ────────────────────────────────────────────────────────────────────
+function openPicker(type){PKR.type=type;PKR.temp=[...(type==='spend'?S.spendCards:S.usageCards)];document.getElementById('picker-title').textContent=type==='spend'?'Cartões — Posso Gastar':'Cartões — Uso por Cartão';renderPickerList();document.getElementById('modal-picker').classList.add('on');}
+function renderPickerList(){document.getElementById('picker-list').innerHTML=cards.map(c=>{const on=PKR.temp.includes(c.id);return`<div class="picker-item ${on?'on':''}" onclick="togglePickerCard('${c.id}')"><div style="display:flex;align-items:center;gap:10px"><span class="cdot" style="background:${c.ac};width:12px;height:12px;flex-shrink:0"></span><div><div style="font-weight:700;font-size:14px">${c.name}</div><div style="font-size:11px;color:var(--muted)">${c.net} · ${R(c.limit)}</div></div></div><div class="tgl ${on?'on':''}"></div></div>`;}).join('');}
+function togglePickerCard(id){const i=PKR.temp.indexOf(id);if(i>=0)PKR.temp.splice(i,1);else PKR.temp.push(id);renderPickerList();}
+function pickerSelectAll(){PKR.temp=cards.map(c=>c.id);renderPickerList();}
+function pickerClearAll(){PKR.temp=[];renderPickerList();}
+function savePicker(){if(!PKR.temp.length){toast('Selecione ao menos 1 cartão ⚠️');return;}if(PKR.type==='spend')S.spendCards=[...PKR.temp];else S.usageCards=[...PKR.temp];document.getElementById('modal-picker').classList.remove('on');persist();renderDash();}
+function outPicker(e){if(e.target===document.getElementById('modal-picker'))document.getElementById('modal-picker').classList.remove('on');}
+
+// ── ADD MODALS ────────────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('m-card').innerHTML=cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('m-cats').innerHTML=CATS.map(c=>`<div class="co ${S.selCat===c.n?'on':''}" onclick="pickCat(this,'${c.n}')"><span class="ce">${c.e}</span>${c.n}</div>`).join('');
+  document.getElementById('m-subcat').value='';document.getElementById('m-parcelas').value='1';
+  document.getElementById('subcat-dl').innerHTML=getSubcats().map(s=>`<option value="${s}"></option>`).join('');
+  document.getElementById('modal').classList.add('on');
+}
+function pickCat(el,n){S.selCat=n;document.querySelectorAll('#m-cats .co').forEach(e=>e.classList.remove('on'));el.classList.add('on');}
+function outModal(e){if(e.target===document.getElementById('modal'))closeModal();}
+function closeModal(){document.getElementById('modal').classList.remove('on');document.getElementById('m-desc').value='';document.getElementById('m-val').value='';document.getElementById('m-subcat').value='';}
+
+function addTxn(){
+  const desc=document.getElementById('m-desc').value.trim();
+  const amt=parseFloat(document.getElementById('m-val').value);
+  const cid=document.getElementById('m-card').value;
+  const cy=document.getElementById('m-cycle').value;
+  const subcat=document.getElementById('m-subcat').value.trim()||null;
+  const parcelas=Math.max(1,parseInt(document.getElementById('m-parcelas').value)||1);
+  if(!desc||!amt||amt<=0){toast('Preencha descrição e valor ⚠️');return;}
+  const baseDate=new Date(appDate);if(cy==='next')baseDate.setMonth(baseDate.getMonth()+1);
+  for(let i=0;i<parcelas;i++){
+    const d=new Date(baseDate);d.setMonth(d.getMonth()+i);
+    const pDesc=parcelas>1?`${desc} (${i+1}/${parcelas})`:desc;
+    txns.push({id:Date.now()+i,cid,cat:S.selCat,desc:pDesc,amt:parseFloat((amt/parcelas).toFixed(2)),dt:d.toISOString().split('T')[0],subcat,parcelas:parcelas>1?`${i+1}/${parcelas}`:null});
+  }
+  closeModal();toast(parcelas>1?`${parcelas}x parcelas adicionadas! ✅`:'Lançamento adicionado! ✅');refreshAll();
+}
+
+function openCardModal(){selColor='purple';renderCG('new-color-grid','purple','pickNewColor');updateCardPreview();document.getElementById('modal-card').classList.add('on');}
+function outCardModal(e){if(e.target===document.getElementById('modal-card'))closeCardModal();}
+function closeCardModal(){document.getElementById('modal-card').classList.remove('on');['mc-name','mc-net','mc-limit','mc-close','mc-due'].forEach(id=>document.getElementById(id).value='');}
+function addCard(){
+  const name=document.getElementById('mc-name').value.trim(),net=document.getElementById('mc-net').value.trim()||'Crédito';
+  const limit=parseFloat(document.getElementById('mc-limit').value),close=parseInt(document.getElementById('mc-close').value),due=parseInt(document.getElementById('mc-due').value);
+  if(!name||!limit||!close||!due){toast('Preencha os campos obrigatórios ⚠️');return;}
+  const th=ckKey(selColor);const newId='c'+Date.now();
+  cards.push({id:newId,name,net,limit,close,due,bg:th.bg,ac:th.ac});
+  S.spendCards.push(newId);S.usageCards.push(newId);
+  closeCardModal();toast('Cartão adicionado! 💳');pick('all');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2400);}
+
+// ── INIT & FIREBASE SYNC ──────────────────────────────────────────────────────
+loadProfileUI();
+updateMonthLabels();
+renderChips();
+renderDash();
+
+// Sincronização Automática
+if(db) {
+  const docRef = db.collection('findash_db').doc('meus_dados');
+  
+  // Escuta atualizações da nuvem
+  docRef.onSnapshot((doc) => {
+    if(doc.exists) {
+      const data = doc.data();
+      cards = data.cards || [];
+      txns = data.txns || [];
+      if(data.settings) {
+         S.spendCards = data.settings.sc || cards.map(c=>c.id);
+         S.usageCards = data.settings.uc || cards.map(c=>c.id);
+      }
+      
+      // Salva local e recarrega
+      localStorage.setItem('fd2_cards',JSON.stringify(cards));
+      localStorage.setItem('fd2_txns',JSON.stringify(txns));
+      localStorage.setItem('fd2_st',JSON.stringify({sc:S.spendCards,uc:S.usageCards}));
+      
+      renderChips();
+      renderDash();
+      if(S.screen==='cards')renderCards();
+      if(S.screen==='categories')setCatView(S.catView);
+      if(S.screen==='projection')setTimeout(renderProj,40);
+      if(S.screen==='transactions')renderTxns();
+      if(document.getElementById('modal-details').classList.contains('on'))renderDetails();
+    }
+  });
+}
+</script>
+</body>
+</html>
