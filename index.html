@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Meu App</title>
+
+  <meta name="theme-color" content="#0f172a"/>
+
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#020f2b;
+      color:white;
+      padding:20px;
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:30px;
+    }
+
+    .card{
+      background:#1e293b;
+      border-radius:20px;
+      padding:20px;
+      margin-bottom:25px;
+    }
+
+    input{
+      width:100%;
+      padding:15px;
+      margin-top:15px;
+      border:none;
+      border-radius:15px;
+      background:#374151;
+      color:white;
+      font-size:16px;
+      box-sizing:border-box;
+    }
+
+    button{
+      width:100%;
+      padding:15px;
+      margin-top:20px;
+      border:none;
+      border-radius:15px;
+      background:#2563eb;
+      color:white;
+      font-size:18px;
+      font-weight:bold;
+    }
+
+    .item{
+      background:#334155;
+      padding:15px;
+      border-radius:15px;
+      margin-top:10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Meu App</h1>
+
+  <div class="card">
+    <h2>Adicionar Item</h2>
+
+    <input type="text" id="nome" placeholder="Nome">
+
+    <input type="number" id="valor" placeholder="Valor">
+
+    <button onclick="salvarItem()">Salvar</button>
+  </div>
+
+  <div class="card">
+    <h2>Itens Salvos</h2>
+
+    <div id="lista"></div>
+  </div>
+
+  <script>
+
+    let itens = JSON.parse(localStorage.getItem("itens")) || [];
+
+    function renderizar() {
+
+      const lista = document.getElementById("lista");
+
+      lista.innerHTML = "";
+
+      if(itens.length === 0){
+        lista.innerHTML = "<p>Nenhum item salvo.</p>";
+        return;
+      }
+
+      itens.forEach((item, index) => {
+
+        lista.innerHTML += `
+          <div class="item">
+            <strong>${item.nome}</strong><br>
+            R$ ${item.valor}
+          </div>
+        `;
+      });
+    }
+
+    function salvarItem(){
+
+      const nome = document.getElementById("nome").value;
+
+      const valor = document.getElementById("valor").value;
+
+      if(!nome || !valor){
+        alert("Preencha todos os campos");
+        return;
+      }
+
+      itens.push({
+        nome,
+        valor
+      });
+
+      localStorage.setItem("itens", JSON.stringify(itens));
+
+      document.getElementById("nome").value = "";
+      document.getElementById("valor").value = "";
+
+      renderizar();
+    }
+
+    renderizar();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js");
+    }
+
+  </script>
+
+</body>
+</html>
