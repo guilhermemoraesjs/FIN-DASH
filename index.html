@@ -1,459 +1,108 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>FinDash</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-/* CSS Completo mantido aqui */
-:root{--bg:#0B0B18;--surf:#16162A;--surf2:#1E1E38;--surf3:#252548;--p:#7C3AED;--p2:#4F46E5;--green:#10B981;--amber:#F59E0B;--red:#EF4444;--txt:#F1F5F9;--txt2:#CBD5E1;--muted:#64748B;--border:rgba(255,255,255,0.07);--r:16px;--r2:10px}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
-#sidebar{position:fixed;top:0;left:-100%;width:85%;max-width:320px;height:100%;background:var(--surf);z-index:1000;transition:.4s cubic-bezier(.4,0,.2,1);box-shadow:10px 0 30px rgba(0,0,0,.5);padding:40px 20px;display:flex;flex-direction:column}
-#sidebar.active{left:0}
-#scrim{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:950;display:none;backdrop-filter:blur(3px)}
-#scrim.active{display:block}
-.profile-section{text-align:center;margin-bottom:30px}
-.profile-img-container{width:90px;height:90px;border-radius:50%;border:3px solid var(--p);margin:0 auto 15px;position:relative;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center}
-.profile-img-container img{width:100%;height:100%;object-fit:cover}
-.profile-img-container i{font-size:40px;color:var(--muted)}
-.edit-photo-btn{position:absolute;bottom:0;right:0;background:var(--p);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;color:#fff}
-.menu-trigger{cursor:pointer;color:var(--txt);margin-right:12px;font-size:20px}
-#hdr{background:linear-gradient(180deg,rgba(124,58,237,.18) 0%,transparent 100%);padding:48px 18px 12px;flex-shrink:0}
-.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.greeting{font-size:21px;font-weight:700;display:flex;align-items:center}
-.greeting span{color:#A78BFA}
-.month-tag{background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:12px;color:var(--txt2);display:flex;align-items:center;gap:8px;user-select:none}
-.m-arr{cursor:pointer;padding:0 5px;font-weight:800;transition:color .2s}
-.m-arr:hover{color:#A78BFA}
-#chips,.x-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-#chips::-webkit-scrollbar,.x-scroll::-webkit-scrollbar{display:none}
-.chip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surf2);color:var(--txt2);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
-.chip.on{background:linear-gradient(135deg,var(--p),var(--p2));border-color:transparent;color:#fff}
-.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-#screens{flex:1;overflow:hidden;position:relative}
-.scr{position:absolute;inset:0;overflow-y:auto;padding:14px 18px 88px;display:none;scrollbar-width:none}
-.scr::-webkit-scrollbar{display:none}
-.scr.on{display:block}
-.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:11px}
-.card-click{cursor:pointer;transition:transform .15s}
-.card-click:active{transform:scale(.98)}
-.sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 8px}
-.sec-row{display:flex;justify-content:space-between;align-items:center;margin:10px 0 8px}
-.cfg-btn{background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s}
-.cfg-btn:hover{color:var(--txt2);border-color:var(--p)}
-.big-stat{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(59,130,246,.18));border:1px solid rgba(124,58,237,.3);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:12px}
-.bs-lbl{font-size:11px;color:#A78BFA;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px}
-.bs-cfg{background:rgba(124,58,237,.25);border:1px solid rgba(124,58,237,.4);border-radius:20px;padding:3px 10px;font-size:10px;color:#A78BFA;cursor:pointer;display:flex;align-items:center;gap:4px}
-.bs-val{font-size:34px;font-weight:800;background:linear-gradient(135deg,#A78BFA,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;min-height:44px}
-.bs-sub{font-size:12px;color:var(--muted);margin-top:5px}
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
-.sc{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px}
-.sc-tap{cursor:pointer;transition:all .2s}
-.sc-tap:active{transform:scale(.97)}
-.sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;font-weight:600}
-.sv{font-size:18px;font-weight:700;letter-spacing:-.4px;min-height:26px}
-.ss{font-size:11px;color:var(--muted);margin-top:3px}
-.sc-link{font-size:10px;color:#A78BFA;font-weight:600;margin-top:7px;display:block}
-.pb{background:var(--surf2);border-radius:4px;height:5px;overflow:hidden;margin-top:7px}
-.pf{height:100%;border-radius:4px;transition:width .8s ease}
-.ti{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);position:relative;}
-.ti:last-child{border-bottom:none}
-.tico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.tin{flex:1;min-width:0}
-.tid{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tim{font-size:11px;color:var(--muted);margin-top:2px}
-.ti-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
-.tia{font-size:14px;font-weight:700;color:var(--red)}
-.ti-edit{font-size:10px;color:var(--muted);cursor:pointer;padding:2px 7px;background:var(--surf2);border-radius:6px;border:1px solid var(--border);transition:all .15s;white-space:nowrap}
-.ti-edit:hover{color:#A78BFA;border-color:var(--p)}
-.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
-.pc{background:rgba(124,58,237,.2);color:#A78BFA}.pn{background:rgba(59,130,246,.2);color:#60A5FA}
-.subcat-pill{display:inline-block;background:rgba(124,58,237,.2);color:#A78BFA;border-radius:20px;padding:2px 7px;font-size:10px;font-weight:600;margin-left:3px}
-.ccv{border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;min-height:165px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform .15s}
-.ccv:active{transform:scale(.98)}
-.ccv::before{content:'';position:absolute;top:-35px;right:-35px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.07)}
-.ccv::after{content:'';position:absolute;bottom:-50px;right:30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.04)}
-.cc-top{display:flex;justify-content:space-between;align-items:flex-start}
-.cc-name{font-size:17px;font-weight:700}.cc-net{font-size:11px;opacity:.6;margin-top:2px}
-.cc-row{display:flex;gap:20px;position:relative;z-index:1}
-.cc-lbl{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}.cc-val{font-size:15px;font-weight:700}
-.cc-edit-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:4px 9px;font-size:11px;cursor:pointer;color:#fff;font-weight:600;backdrop-filter:blur(4px);transition:background .2s;white-space:nowrap;flex-shrink:0}
-.cc-edit-btn:hover{background:rgba(255,255,255,.28)}
-.usage-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:9px;cursor:pointer;transition:all .2s}
-.usage-card:hover{border-color:rgba(124,58,237,.4)}
-.usage-card:active{transform:scale(.98)}
-#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(22,22,42,.95);border-top:1px solid var(--border);display:flex;padding:8px 0 22px;z-index:100;backdrop-filter:blur(20px)}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px;cursor:pointer}
-.ni svg{width:22px;height:22px;color:var(--muted);transition:color .2s}
-.ni span{font-size:9px;color:var(--muted);font-weight:600;transition:color .2s}
-.ni.on svg,.ni.on span{color:#A78BFA}
-#fab{position:fixed;bottom:78px;right:calc(50% - 210px);width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(124,58,237,.45);z-index:99;transition:transform .15s}
-#fab:active{transform:scale(.93)}
-.mo{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1500;display:none;align-items:flex-end;backdrop-filter:blur(4px)}
-.mo.on{display:flex}
-.mo-hi{z-index:2000}
-.mb{background:var(--surf);border-radius:22px 22px 0 0;padding:22px;width:100%;max-width:430px;margin:0 auto;border-top:1px solid var(--border);max-height:88vh;overflow-y:auto}
-.mh{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
-.mt{font-size:17px;font-weight:700;text-align:center;margin-bottom:18px}
-.fg{margin-bottom:14px}
-.fl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:block}
-.fi{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);padding:11px 14px;color:var(--txt);font-size:14px;outline:none;transition:border-color .2s}
-.fi:focus{border-color:var(--p)}
-.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;border-radius:var(--r2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px}
-.btn-out-red{width:100%;padding:11px;background:transparent;border:1px solid var(--red);border-radius:var(--r2);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
-.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.co{background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);padding:9px 5px;text-align:center;cursor:pointer;transition:all .2s;font-size:11px;color:var(--txt2)}
-.co.on{border-color:var(--p);background:rgba(124,58,237,.15);color:#A78BFA}
-.ce{font-size:18px;display:block;margin-bottom:3px}
-.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
-.csw{height:46px;border-radius:12px;cursor:pointer;transition:all .2s;border:2.5px solid transparent;display:flex;align-items:center;justify-content:center;position:relative}
-.csw.on{border-color:rgba(255,255,255,.9);transform:scale(1.07);box-shadow:0 2px 14px rgba(255,255,255,.22)}
-.chk{font-size:15px;color:#fff;opacity:0;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.7)}
-.csw.on .chk{opacity:1}
-.card-prev{border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;transition:background .3s;margin-bottom:4px;min-height:54px}
-.picker-item{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;background:var(--surf2);border-radius:var(--r2);margin-bottom:8px;cursor:pointer;border:1.5px solid transparent;transition:all .2s}
-.picker-item.on{border-color:var(--p);background:rgba(124,58,237,.12)}
-.tgl{width:42px;height:24px;border-radius:12px;background:var(--surf3);position:relative;transition:background .25s;flex-shrink:0}
-.tgl.on{background:var(--p)}
-.tgl::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .25s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
-.tgl.on::after{left:21px}
-.cycle-sum{text-align:center;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(59,130,246,.15));border-radius:14px;border:1px solid rgba(124,58,237,.25);margin-bottom:10px}
-.cycle-sum-lbl{font-size:10px;color:#A78BFA;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:5px}
-.cycle-sum-val{font-size:28px;font-weight:800;background:linear-gradient(135deg,#A78BFA,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.del-confirm{display:none;background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:var(--r2);padding:14px;text-align:center;margin-top:10px}
-#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:600;z-index:3000;opacity:0;transition:opacity .3s;pointer-events:none}
-.ch{position:relative;height:200px;width:100%}
-.chl{position:relative;height:230px;width:100%}
-.empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:13px}
-.empty-i{font-size:40px;margin-bottom:10px}
-.lg-item{display:flex;align-items:center;gap:9px;padding:5px 0}
-.lg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.stitle{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-bottom:14px}
-#cycle-row{display:flex;gap:8px;margin-bottom:13px;overflow-x:auto;scrollbar-width:none}
-#cycle-row::-webkit-scrollbar{display:none}
-.search-bar{position:relative;margin-bottom:12px}
-.search-bar .fi{padding-left:34px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-.parcela-badge{display:inline-block;background:rgba(59,130,246,.2);color:#60A5FA;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;margin-left:3px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Meu App</title>
+  <meta name="theme-color" content="#0f172a"/>
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    body{margin:0; font-family:Arial, sans-serif; background:#020f2b; color:white; padding:20px;}
+    h1{text-align:center; margin-bottom:30px;}
+    .card{background:#1e293b; border-radius:20px; padding:20px; margin-bottom:25px;}
+    input{width:100%; padding:15px; margin-top:15px; border:none; border-radius:15px; background:#374151; color:white; font-size:16px; box-sizing:border-box;}
+    button{width:100%; padding:15px; margin-top:20px; border:none; border-radius:15px; background:#2563eb; color:white; font-size:18px; font-weight:bold; cursor:pointer;}
+    .item{background:#334155; padding:15px; border-radius:15px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;}
+    .delete-btn{background:#ef4444; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:12px;}
+  </style>
 </head>
 <body>
-<div id="scrim" onclick="toggleMenu()"></div>
-<div id="sidebar">
-  <div class="profile-section">
-    <div class="profile-img-container">
-      <img id="side-profile-img" src="" style="display:none">
-      <i class="fa-solid fa-user" id="side-profile-icon"></i>
-      <label class="edit-photo-btn" for="photo-upload"><i class="fa-solid fa-camera"></i></label>
-      <input type="file" id="photo-upload" hidden accept="image/*" onchange="uploadPhoto(event)">
-    </div>
-    <h2 id="side-name" style="font-size:18px;font-weight:700">Você</h2>
-    <p id="cloud-status" style="font-size:11px;color:var(--green);margin-top:4px">☁️ Sincronizado na nuvem</p>
+
+  <h1>Meu App</h1>
+
+  <div class="card">
+    <h2>Adicionar Item</h2>
+    <input type="text" id="nome" placeholder="Nome">
+    <input type="number" id="valor" placeholder="Valor">
+    <button onclick="salvarItem()">Salvar</button>
   </div>
-  <div style="flex:1">
-    <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Seu Perfil</label>
-    <div style="margin-top:15px">
-      <p style="font-size:12px;margin-bottom:5px;color:var(--txt2)">Como quer ser chamado?</p>
-      <input class="fi" id="edit-name" placeholder="Seu Nome" onchange="updateProfileData()" style="margin-bottom:20px">
-      <p style="font-size:12px;margin-bottom:5px;color:var(--txt2)">Renda Mensal (R$)</p>
-      <input class="fi" id="edit-income" type="number" placeholder="0,00" onchange="updateProfileData()">
-    </div>
+
+  <div class="card">
+    <h2>Itens Salvos</h2>
+    <div id="lista">Carregando...</div>
   </div>
-</div>
 
-<div id="hdr">
-  <div class="hdr-top">
-    <div class="greeting"><i class="fa-solid fa-bars menu-trigger" onclick="toggleMenu()"></i>Olá, <span id="hdr-user-name" style="margin-left:6px">você</span> 👋</div>
-    <div class="month-tag"><span class="m-arr" onclick="shiftMonth(-1)">&lt;</span><span id="hdr-month" style="min-width:65px;text-align:center">Mai 2026</span><span class="m-arr" onclick="shiftMonth(1)">&gt;</span></div>
-  </div>
-  <div id="chips"></div>
-</div>
+  <script>
+    // ── CONFIGURAÇÃO FIREBASE ─────────────────────────────────────────────────
+    const firebaseConfig = {
+      apiKey: "AIzaSyCksV5Rh_bqxc8CDGY_gKmOQ3EGrnmF-us",
+      authDomain: "fin-dash-fc0a8.firebaseapp.com",
+      projectId: "fin-dash-fc0a8",
+      storageBucket: "fin-dash-fc0a8.firebasestorage.app",
+      messagingSenderId: "486217263252",
+      appId: "1:486217263252:web:fa91df24c5375c6617ac81"
+    };
 
-<div id="screens">
-  <section class="scr on" id="s-dashboard">
-    <div id="insights-row" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;scrollbar-width:none"></div>
-    <div class="big-stat">
-      <div class="bs-lbl">💳 POSSO GASTAR<span class="bs-cfg" onclick="openPicker('spend')"><i class="fa-solid fa-sliders" style="font-size:10px"></i> Cartões</span></div>
-      <div class="bs-val" id="bs-val">R$ 0</div>
-      <div class="bs-sub" id="bs-sub">Limite disponível consolidado</div>
-    </div>
-    <div class="sg">
-      <div class="sc sc-tap" onclick="openDetails('cycle','current')"><div class="sl">Fatura Atual</div><div class="sv" style="color:var(--red)" id="d-curr">R$ 0</div><div class="ss" id="lbl-d-curr">Maio 2026</div><span class="sc-link">Ver lançamentos →</span></div>
-      <div class="sc sc-tap" onclick="openDetails('cycle','next')"><div class="sl">Próxima Fatura</div><div class="sv" style="color:var(--amber)" id="d-next">R$ 0</div><div class="ss" id="lbl-d-next">Junho 2026</div><span class="sc-link">Ver lançamentos →</span></div>
-      <div class="sc"><div class="sl">Limite Total</div><div class="sv" id="d-limit">R$ 0</div><div class="ss" id="d-cards">0 cartões</div></div>
-      <div class="sc"><div class="sl">Lançamentos</div><div class="sv" id="d-count">0</div><div class="ss">fatura atual</div></div>
-    </div>
-    <div class="sec-row"><span class="sec">Uso por Cartão</span><span class="cfg-btn" onclick="openPicker('usage')"><i class="fa-solid fa-sliders"></i> Configurar</span></div>
-    <div id="d-card-list"></div>
-    <p class="sec">Últimos Lançamentos</p>
-    <div class="card" id="d-recent"></div>
-  </section>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  <section class="scr" id="s-cards">
-    <div class="stitle">Meus Cartões</div>
-    <div id="cards-list"></div>
-  </section>
+    let itens = [];
 
-  <section class="scr" id="s-categories">
-    <div class="stitle">Categorias</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <div class="chip on" id="tab-cats" onclick="setCatView('cats')">Por Categoria</div>
-      <div class="chip" id="tab-subcats" onclick="setCatView('subcats')">🏷️ Subcategorias</div>
-    </div>
-    <div id="cats-view">
-      <div class="card"><div class="ch"><canvas id="cat-chart"></canvas></div><div id="cat-legend" style="margin-top:12px"></div></div>
-      <p class="sec">Detalhamento</p>
-      <div id="cat-detail"></div>
-    </div>
-    <div id="subcats-view" style="display:none"><div id="subcats-content"></div></div>
-  </section>
-
-  <section class="scr" id="s-projection">
-    <div class="stitle">Projeção</div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
-        <span style="font-size:13px;font-weight:600">Evolução Mensal</span>
-        <div style="display:flex;gap:10px;font-size:11px;color:var(--muted)">
-          <span><span style="display:inline-block;width:12px;height:3px;background:#A78BFA;border-radius:2px;vertical-align:middle"></span> Atual</span>
-          <span><span style="display:inline-block;width:12px;height:3px;background:#60A5FA;border-radius:2px;vertical-align:middle;border-top:1px dashed #60A5FA"></span> Próximo</span>
-        </div>
-      </div>
-      <div class="chl"><canvas id="proj-chart"></canvas></div>
-    </div>
-    <p class="sec">Comparativo</p>
-    <div class="card" id="proj-table"></div>
-  </section>
-
-  <section class="scr" id="s-transactions">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="stitle" style="margin-bottom:0">Lançamentos</div>
-      <div style="display:flex;gap:8px">
-        <div class="cfg-btn" onclick="exportCSV()"><i class="fa-solid fa-download"></i> CSV</div>
-        <label class="cfg-btn">
-          <i class="fa-solid fa-upload"></i> Import
-          <input type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
-        </label>
-      </div>
-    </div>
-    <div class="search-bar"><i class="fa-solid fa-magnifying-glass search-icon"></i><input class="fi" id="txn-search" placeholder="Buscar lançamento..." oninput="renderTxns()"/></div>
-    <div id="cycle-row"></div>
-    <div id="txn-list"></div>
-  </section>
-</div>
-
-<div id="fab" onclick="openModal()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-
-<nav id="nav">
-  <div class="ni on" data-s="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></div>
-  <div class="ni" data-s="cards" onclick="go('cards')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Cartões</span></div>
-  <div class="ni" data-s="categories" onclick="go('categories')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Categorias</span></div>
-  <div class="ni" data-s="projection" onclick="go('projection')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Projeção</span></div>
-  <div class="ni" data-s="transactions" onclick="go('transactions')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Lançamentos</span></div>
-</nav>
-
-<div class="mo" id="modal-details" onclick="if(event.target===this)closeDetails()">
-  <div class="mb" style="height:85vh;display:flex;flex-direction:column;padding:22px 18px">
-    <div class="mh"></div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;flex-shrink:0">
-      <div class="mt" id="md-title" style="margin-bottom:0;flex:1;text-align:center">Detalhes</div>
-      <div id="md-edit-btn" style="display:none;background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--txt2);cursor:pointer;flex-shrink:0">✏️ Editar</div>
-    </div>
-    <div id="md-summary" style="display:none;flex-shrink:0"></div>
-    <div id="md-filters" class="x-scroll" style="margin-bottom:13px;flex-shrink:0;padding-bottom:5px"></div>
-    <div style="flex:1;overflow-y:auto;padding-bottom:20px;scrollbar-width:none"><div class="card" id="md-list" style="margin-bottom:0;min-height:100%"></div></div>
-  </div>
-</div>
-
-<div class="mo mo-hi" id="modal-edit-txn" onclick="if(event.target===this)closeTxnModal()">
-  <div class="mb">
-    <div class="mh"></div>
-    <div class="mt">Editar Lançamento</div>
-    <div class="fg"><label class="fl">Descrição</label><input class="fi" id="et-desc" placeholder="Descrição..."/></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="et-val" type="number" step="0.01" min="0.01"/></div>
-      <div class="fg"><label class="fl">Cartão</label><select class="fi" id="et-card"></select></div>
-    </div>
-    <div class="fg"><label class="fl">Data</label><input class="fi" id="et-date" type="date"/></div>
-    <div class="fg"><label class="fl">Categoria</label><div class="cg" id="et-cats"></div></div>
-    <div class="fg"><label class="fl">Subcategoria</label><input class="fi" id="et-subcat" list="et-subcat-dl" placeholder="Ex: Casamento, Viagem..."/><datalist id="et-subcat-dl"></datalist></div>
-    <button class="btn" onclick="saveEditTxn()">Salvar Alterações</button>
-    <button class="btn-out-red" id="et-del-btn" onclick="showDelTxnConfirm()">🗑️ Excluir Lançamento</button>
-    <div class="del-confirm" id="et-del-confirm">
-      <div style="color:var(--red);font-weight:600;font-size:13px;margin-bottom:12px">⚠️ Excluir este lançamento?</div>
-      <div style="display:flex;gap:8px">
-        <button style="flex:1;padding:10px;background:var(--red);border:none;border-radius:var(--r2);color:#fff;font-weight:700;cursor:pointer" onclick="confirmDelTxn()">Sim</button>
-        <button style="flex:1;padding:10px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);color:var(--txt2);cursor:pointer" onclick="cancelDelTxn()">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="mo" id="modal-picker" onclick="outPicker(event)">
-  <div class="mb">
-    <div class="mh"></div>
-    <div class="mt" id="picker-title">Selecionar Cartões</div>
-    <div id="picker-list"></div>
-    <div style="display:flex;gap:8px;margin-top:4px;margin-bottom:4px">
-      <button style="flex:1;padding:9px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);color:var(--txt2);font-size:12px;cursor:pointer" onclick="pickerSelectAll()">Todos</button>
-      <button style="flex:1;padding:9px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);color:var(--txt2);font-size:12px;cursor:pointer" onclick="pickerClearAll()">Nenhum</button>
-    </div>
-    <button class="btn" onclick="savePicker()">Confirmar</button>
-  </div>
-</div>
-
-<div class="mo" id="modal" onclick="outModal(event)">
-  <div class="mb">
-    <div class="mh"></div>
-    <div class="mt">Novo Lançamento</div>
-    <div class="fg"><label class="fl">Descrição</label><input class="fi" id="m-desc" placeholder="Ex: iFood, Netflix..."/></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="m-val" type="number" placeholder="0,00" step="0.01" min="0.01"/></div>
-      <div class="fg"><label class="fl">Cartão</label><select class="fi" id="m-card"></select></div>
-    </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Fatura</label>
-        <select class="fi" id="m-cycle">
-          <option value="current" id="m-cy-curr">Fatura Atual</option>
-          <option value="next" id="m-cy-next">Próxima Fatura</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Parcelas</label><input class="fi" id="m-parcelas" type="number" value="1" min="1" max="60" placeholder="1"/></div>
-    </div>
-    <div class="fg"><label class="fl">Categoria</label><div class="cg" id="m-cats"></div></div>
-    <div class="fg">
-      <label class="fl">Subcategoria <span style="color:var(--muted);font-size:9px;font-weight:400;text-transform:none">(opcional)</span></label>
-      <input class="fi" id="m-subcat" list="subcat-dl" placeholder="Ex: Casamento, Viagem Europa..."/>
-      <datalist id="subcat-dl"></datalist>
-    </div>
-    <button class="btn" onclick="addTxn()">Adicionar Lançamento</button>
-  </div>
-</div>
-
-<div class="mo" id="modal-card" onclick="outCardModal(event)">
-  <div class="mb">
-    <div class="mh"></div>
-    <div class="mt">Novo Cartão</div>
-    <div class="fg"><label class="fl">Nome do Banco</label><input class="fi" id="mc-name" placeholder="Ex: Inter, Santander..." oninput="updateCardPreview()"/></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Bandeira</label><input class="fi" id="mc-net" placeholder="Mastercard, Visa..." oninput="updateCardPreview()"/></div>
-      <div class="fg"><label class="fl">Limite (R$)</label><input class="fi" id="mc-limit" type="number" placeholder="0,00" step="0.01"/></div>
-    </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Dia Fechamento</label><input class="fi" id="mc-close" type="number" placeholder="15" min="1" max="31"/></div>
-      <div class="fg"><label class="fl">Dia Vencimento</label><input class="fi" id="mc-due" type="number" placeholder="20" min="1" max="31"/></div>
-    </div>
-    <div class="fg"><label class="fl">Cor</label><div class="color-grid" id="new-color-grid"></div>
-      <label class="fl" style="margin-top:8px">Prévia</label>
-      <div class="card-prev" id="card-preview"><div><div id="prev-name" style="font-weight:700;font-size:14px">Novo Cartão</div><div id="prev-net" style="font-size:10px;opacity:.6">Bandeira</div></div><div style="font-size:22px">💳</div></div>
-    </div>
-    <button class="btn" onclick="addCard()">Criar Cartão</button>
-  </div>
-</div>
-
-<div class="mo mo-hi" id="modal-edit-card" onclick="outEditCard(event)">
-  <div class="mb">
-    <div class="mh"></div>
-    <div class="mt">Editar Cartão</div>
-    <div class="fg"><label class="fl">Nome</label><input class="fi" id="ec-name" oninput="updateEditPreview()"/></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Bandeira</label><input class="fi" id="ec-net" oninput="updateEditPreview()"/></div>
-      <div class="fg"><label class="fl">Limite (R$)</label><input class="fi" id="ec-limit" type="number"/></div>
-    </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Fechamento</label><input class="fi" id="ec-close" type="number" min="1" max="31"/></div>
-      <div class="fg"><label class="fl">Vencimento</label><input class="fi" id="ec-due" type="number" min="1" max="31"/></div>
-    </div>
-    <div class="fg"><label class="fl">Cor</label><div class="color-grid" id="edit-color-grid"></div>
-      <label class="fl" style="margin-top:8px">Prévia</label>
-      <div class="card-prev" id="edit-card-preview"><div><div id="ec-prev-name" style="font-weight:700;font-size:14px">Cartão</div><div id="ec-prev-net" style="font-size:10px;opacity:.6">Bandeira</div></div><div style="font-size:22px">💳</div></div>
-    </div>
-    <button class="btn" onclick="saveEditCard()">Salvar Alterações</button>
-    <button class="btn-out-red" id="card-del-btn" onclick="showDelCardConfirm()">🗑️ Excluir Cartão</button>
-    <div class="del-confirm" id="card-del-confirm">
-      <div style="color:var(--red);font-weight:600;font-size:13px;margin-bottom:12px">⚠️ Excluir cartão e todos os seus lançamentos?</div>
-      <div style="display:flex;gap:8px">
-        <button style="flex:1;padding:10px;background:var(--red);border:none;border-radius:var(--r2);color:#fff;font-weight:700;cursor:pointer" onclick="confirmDelCard()">Sim, excluir</button>
-        <button style="flex:1;padding:10px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r2);color:var(--txt2);cursor:pointer" onclick="cancelDelCard()">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-// ==============================================================================
-// 1. CHAVES DO FIREBASE INTEGRADAS
-// ==============================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyCksV5Rh_bqxc8CDGY_gKmOQ3EGrnmF-us",
-  authDomain: "fin-dash-fc0a8.firebaseapp.com",
-  projectId: "fin-dash-fc0a8",
-  storageBucket: "fin-dash-fc0a8.firebasestorage.app",
-  messagingSenderId: "486217263252",
-  appId: "1:486217263252:web:fa91df24c5375c6617ac81"
-};
-
-// Inicia o Firebase
-let db = null;
-try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-} catch(e) { console.error("Erro Firebase:", e); }
-
-// ── PERSISTÊNCIA ──────────────────────────────────────────────────────────────
-function persist(){
-  localStorage.setItem('fd2_cards', JSON.stringify(cards));
-  localStorage.setItem('fd2_txns', JSON.stringify(txns));
-  localStorage.setItem('fd2_st', JSON.stringify({sc:S.spendCards,uc:S.usageCards}));
-  
-  if(db) {
-    db.collection('findash_db').doc('meus_dados').set({
-      cards: cards, txns: txns, settings: {sc:S.spendCards,uc:S.usageCards}
-    }).catch(err => console.error(err));
-  }
-}
-
-// ── SINCRONIZAÇÃO EM TEMPO REAL ──────────────────────────────────────────────
-if(db) {
-  db.collection('findash_db').doc('meus_dados').onSnapshot((doc) => {
-    if(doc.exists) {
-      const data = doc.data();
-      if(JSON.stringify(cards) !== JSON.stringify(data.cards) || JSON.stringify(txns) !== JSON.stringify(data.txns)) {
-          cards = data.cards;
-          txns = data.txns;
-          S.spendCards = data.settings.sc;
-          S.usageCards = data.settings.uc;
-          localStorage.setItem('fd2_cards', JSON.stringify(cards));
-          localStorage.setItem('fd2_txns', JSON.stringify(txns));
-          refreshAll();
+    // ── SINCRONIZAÇÃO EM TEMPO REAL ──────────────────────────────────────────
+    db.collection("meu_app").doc("dados").onSnapshot((doc) => {
+      if (doc.exists) {
+        itens = doc.data().lista || [];
+        renderizar();
+      } else {
+        renderizar();
       }
+    });
+
+    function renderizar() {
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+
+      if(itens.length === 0){
+        lista.innerHTML = "<p>Nenhum item salvo.</p>";
+        return;
+      }
+
+      itens.forEach((item, index) => {
+        lista.innerHTML += `
+          <div class="item">
+            <div><strong>${item.nome}</strong><br>R$ ${item.valor}</div>
+            <div class="delete-btn" onclick="deletarItem(${index})">Excluir</div>
+          </div>
+        `;
+      });
     }
-  });
-}
 
-// ── RESTANTE DA LÓGICA (Mantenha todas as suas funções originais aqui) ──
-// (Aqui entram as funções que você já tem: renderDash, renderCards, etc.)
-// ...
+    async function salvarItem(){
+      const nome = document.getElementById("nome").value;
+      const valor = document.getElementById("valor").value;
 
-function refreshAll(){
-  persist();
-  renderDash();
-  renderCards();
-  if(S.screen==='categories') setCatView(S.catView);
-  if(S.screen==='projection') setTimeout(renderProj, 40);
-  if(S.screen==='transactions') renderTxns();
-  if(document.getElementById('modal-details').classList.contains('on')) renderDetails();
-}
+      if(!nome || !valor){
+        alert("Preencha todos os campos");
+        return;
+      }
 
-// Inicialização
-loadProfileUI(); updateMonthLabels(); renderChips(); renderDash();
-</script>
+      itens.push({ nome, valor });
+
+      // Salva no Firestore
+      await db.collection("meu_app").doc("dados").set({ lista: itens });
+
+      document.getElementById("nome").value = "";
+      document.getElementById("valor").value = "";
+    }
+
+    async function deletarItem(index) {
+      itens.splice(index, 1);
+      await db.collection("meu_app").doc("dados").set({ lista: itens });
+    }
+
+  </script>
 </body>
 </html>
